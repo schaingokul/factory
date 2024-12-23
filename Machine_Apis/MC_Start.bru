@@ -1,0 +1,21 @@
+meta {
+  name: MC_Start
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3001/api/start
+  body: json
+  auth: none
+}
+
+body:json {
+  { 
+    "type": "operator",
+    "Set_Mc":"Machine_1",
+    "Set_Md": "Mold_1",
+    "Start_D": "13-05-2021",
+    "Start_T": "1:50"
+  }
+}

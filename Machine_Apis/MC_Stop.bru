@@ -1,0 +1,19 @@
+meta {
+  name: MC_Stop
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3001/api/stop/6769256b2c1b98c9664d7e10
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "operator",
+    "Stop_D": "13-05-2021",
+    "Stop_T": "1:50"
+  }
+}

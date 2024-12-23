@@ -1,0 +1,17 @@
+meta {
+  name: alluser
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:3001/api/alluser
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type":  "production_head"
+  }
+}

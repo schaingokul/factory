@@ -1,0 +1,17 @@
+meta {
+  name: All_MC_Running
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:3001/api/machine
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "quality"
+  }
+}

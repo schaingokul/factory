@@ -1,0 +1,20 @@
+meta {
+  name: attedence
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:3001/api/attend
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "operator",
+    "operatorName": "Gokul",
+    "operatorId":"123",
+    "action": true
+  }
+}

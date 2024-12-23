@@ -1,0 +1,21 @@
+meta {
+  name: MC_record
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3001/api/qc/6769256b2c1b98c9664d7e10
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "quality",
+    "qlty":"20",
+    "Wt": "30",
+    "up_D": "13-05-2021",
+    "up_T": "5:50"
+  }
+}

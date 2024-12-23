@@ -1,0 +1,21 @@
+meta {
+  name: signup
+  type: http
+  seq: 10
+}
+
+post {
+  url: http://localhost:3001/api/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "Authorized": "production_head",
+    "name": "Gokul",
+    "Id":"123",
+    "password": "123456",
+    "type": "operator"
+  }
+}

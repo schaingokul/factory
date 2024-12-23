@@ -1,0 +1,19 @@
+meta {
+  name: Qcstatus
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3001/api/qcstatus/6762af401c8e9de927211f19
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "quality",
+    "qid": "6762af86631545a6fe7c4fec",
+    "isApproved": true
+  }
+}
