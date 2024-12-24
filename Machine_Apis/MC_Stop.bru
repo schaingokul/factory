@@ -5,15 +5,11 @@ meta {
 }
 
 post {
-  url: http://localhost:3001/api/stop/6769256b2c1b98c9664d7e10
+  url: http://localhost:3001/api/stop/676aa423d8633a55359e7997
   body: json
-  auth: none
+  auth: bearer
 }
 
-body:json {
-  {
-    "type": "operator",
-    "Stop_D": "13-05-2021",
-    "Stop_T": "1:50"
-  }
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0MTIzNCIsIm5hbWUiOiJHb2t1bCIsInR5cGUiOiJvcGVyYXRvciIsImlhdCI6MTczNTAzOTY4NX0.NN2PxXh4K3p5W2KwhrlrdNU8ATInKoB9HqmSZ87Wdxo
 }

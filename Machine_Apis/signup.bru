@@ -7,15 +7,22 @@ meta {
 post {
   url: http://localhost:3001/api/signup
   body: json
-  auth: none
+  auth: bearer
+}
+
+headers {
+  Authorization: production_head
+}
+
+auth:bearer {
+  token: Authorization
 }
 
 body:json {
   {
-    "Authorized": "production_head",
-    "name": "Gokul",
-    "Id":"123",
-    "password": "123456",
-    "type": "operator"
+    "name": "GokulE",
+    "Id":"1",
+    "password": "12341234",
+    "type": "quality"
   }
 }

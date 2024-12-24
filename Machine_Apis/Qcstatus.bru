@@ -5,15 +5,18 @@ meta {
 }
 
 post {
-  url: http://localhost:3001/api/qcstatus/6762af401c8e9de927211f19
+  url: http://localhost:3001/api/qcstatus/676aa5092be432fc4b881810
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwibmFtZSI6Ikdva3VsRSIsInR5cGUiOiJxdWFsaXR5IiwiaWF0IjoxNzM1MDQyMTU2fQ.kTTbetoHM83FKJAlDY6vdmDO7cyXrYabVIOuV1tnoiQ
 }
 
 body:json {
   {
-    "type": "quality",
-    "qid": "6762af86631545a6fe7c4fec",
-    "isApproved": true
+    "qid": "676aa53fe20d727b5a049041",
+    "isApproved": false
   }
 }

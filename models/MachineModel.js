@@ -1,11 +1,16 @@
 const mongoose = require("mongoose") ;
+const moment = require("moment-timezone");
+
+// Helper to get formatted IST datetime
+const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
+
 
 const RecordSchema = mongoose.Schema(
     {
+        qcId: {type: String, required: true},
         Qlty: { type: String, default: "0"},
         Wt: {type: String, default: "0"},
-        update_D: { type: String}, // Date
-        update_T: { type: String}, // Time
+        update_D: { type: String},
         isApproved: {type: Boolean, default: false}
       },
       { _id: true } 
@@ -20,10 +25,10 @@ const EmergencySchema = mongoose.Schema(
 );
 
 const MachineSchema = mongoose.Schema({
-    Set_Mc: {type: String, required: true}, //Machine
-    Set_Md: {type: String, required: true}, // Mold
-    Start_D: { type: String}, // Date
-    Start_T: { type: String}, // Time
+    userId: {type: String, required: true},
+    Set_Mc: {type: String, required: true}, // Machine
+    Set_Md: {type: String, required: true}, // Mold 
+    Start_D: { type: String},
     QC: {type: [RecordSchema],
         validate: {
             validator: function (value) {
@@ -33,9 +38,19 @@ const MachineSchema = mongoose.Schema({
         },
     }, // QualityChecking
     EM: EmergencySchema, //Emergency
-    Stop_D: { type: String}, // Date
-    Stop_T: { type: String}, // Time
-}, { timestamps: true });
+    Stop_D: { type: String},
+}, { timestamps: false });
+
+
+MachineSchema.pre("save", function (next) {
+    this.updatedAt = getFormattedDateTime();
+    next();
+  });
+  
+  MachineSchema.pre("findOneAndUpdate", function (next) {
+    this.set({ updatedAt: getFormattedDateTime() });
+    next();
+  });
 
 const machineModel = mongoose.model('Machine', MachineSchema );
 module.exports = { machineModel };
