@@ -62,7 +62,6 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-
 router.post('/login', async(req, res) => {
     const {type , name, Id} = req.body
     try {
@@ -434,7 +433,6 @@ router.post('/attend', authenticate,  async (req, res) => {
         });
     }
 });
-
 
 router.delete('/delete/:id', async(req, res) => {
     const {type} = req.body;

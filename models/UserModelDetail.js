@@ -11,7 +11,7 @@ const userDetailsSchema = new mongoose.Schema(
       name: { type: String, required: true },
       userId: { type: String, required: true, unique: true },
       Password: { type: String, required: true },
-      type: {type: String, enum: ["operator" , "productionhead", "quality"]},
+      type: {type: String, enum: ["operator" , "production_head", "quality"]},
       createdAt: { type: String, default: getFormattedDateTime },
       updatedAt: { type: String, default: getFormattedDateTime },
     },
