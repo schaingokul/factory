@@ -353,7 +353,7 @@ router.get('/atten', authenticate, async (req, res) => {
         let findUser;
         if (type.toLowerCase() === 'production_head') {
             findUser = await UserAttendance.find({
-                createdAt: { $gte: `${startOfDay} 00:00 AM` , $lt: `${endOfDay} 00:00 AM` },
+                createdAt: { $gte: `${startOfDay} 00:00 AM` , $lt: `${endOfDay} 00:00 PM` },
             }).sort({ createdAt: -1 });
         } else{
             // If the user is an operator or quality, fetch only their attendance
