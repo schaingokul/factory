@@ -49,11 +49,15 @@ router.post('/signup', async (req, res) => {
 
         // Initialize a new attendance record for this user
         const newAttendance = new UserAttendance({
-            userId: newUser.id,
+            userId: Id,
             year: currentYear,
             month: currentMonth + 1, // Adjust month to be 1-indexed
             data: Array(new Date(currentYear, currentMonth + 1, 0).getDate()).fill(0) // Initialize with 0 (leave or no data) for all days
         });
+        if(!newAttendance){
+            return res.status(400).json({ status: false, message: 'Attendence is not created' });
+        }
+        console.log("newAttendance", newAttendance)
         await newAttendance.save();
 
         res.status(201).json({ status: true, message: `New User Created`, data: newUser });
@@ -332,6 +336,7 @@ router.post('/stop/:id',authenticate,  async(req, res) => {
 
 router.get('/atten', authenticate, async (req, res) => {
     const { type, userId } = req.user;  // Extract type and userId from authenticated user
+    const {startOfDay, endOfDay} = req.params
     try {
         // Validate user existence
         const user = await UserDetailsModel.findOne({ userId: userId });
@@ -341,16 +346,16 @@ router.get('/atten', authenticate, async (req, res) => {
 
         // Define date range for today
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // Midnight of today
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1); // Midnight of the next day
+        startOfDay = startOfDay || `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+        endOfDay = endOfDay || `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()+1}`;
 
         // If the user is a production head, fetch all today's attendance records
         let findUser;
         if (type.toLowerCase() === 'production_head') {
             findUser = await UserAttendance.find({
-                createdAt: { $gte: startOfDay, $lt: endOfDay },
+                createdAt: { $gte: `${startOfDay} 00:00 AM` , $lt: `${endOfDay} 00:00 AM` },
             }).sort({ createdAt: -1 });
-        } else {
+        } else{
             // If the user is an operator or quality, fetch only their attendance
             findUser = await UserAttendance.find({
                 userId: userId,
@@ -358,6 +363,10 @@ router.get('/atten', authenticate, async (req, res) => {
             }).sort({ createdAt: -1 });
         }
 
+        console.log("Query for production_head:", {
+            createdAt: { $gte: startOfDay, $lt: endOfDay },
+        });
+        
         // Check if attendance records are found
         if (!findUser || findUser.length === 0) {
             return res.status(500).json({ status: false, message: `Attendance records not found.` });
@@ -379,8 +388,8 @@ router.get('/atten', authenticate, async (req, res) => {
 });
 
 router.post('/attend', authenticate,  async (req, res) => {
-    const {  year, month, status } = req.body;
-    const {type, userId } = req.user;
+    const { year, month, status } = req.body;
+    const {type , userId} = req.user;
 
     try {
         const user = await UserDetailsModel.find({userId: userId});

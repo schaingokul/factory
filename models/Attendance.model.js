@@ -7,7 +7,7 @@ const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-D
 
 const userAttendanceSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "FactoryUser", required: true, },
+    userId: { type:String, required: true, },
     year: { type: Number, required: true },
     month: { type: Number, required: true },
     data: {

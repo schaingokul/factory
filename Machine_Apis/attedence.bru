@@ -7,14 +7,17 @@ meta {
 post {
   url: http://localhost:3001/api/attend
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzIiwibmFtZSI6Ikdva3VsIiwidHlwZSI6Im9wZXJhdG9yIiwiaWF0IjoxNzM1MTAzNTMyfQ.7lr1VnwcFA_oxA0nOrGL7asy521kJD6n0e1uQTN4rTs
 }
 
 body:json {
   {
-    "userId": "676a7037627b3130c7b10447",
     "year":2024,
     "month": 12,
-    "status": 2
+    "status": 1
   }
 }
