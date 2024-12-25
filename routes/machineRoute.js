@@ -380,7 +380,7 @@ router.get('/atten', authenticate, async (req, res) => {
 
 router.post('/attend', authenticate,  async (req, res) => {
     const {  year, month, status } = req.body;
-    const {type, userId } = req.body;
+    const {type, userId } = req.user;
 
     try {
         const user = await UserDetailsModel.find({userId: userId});
