@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const moment = require("moment-timezone");
+import mongoose from"mongoose";
+import moment from"moment-timezone";
 
 // Helper to get formatted IST datetime
 const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
@@ -11,7 +11,7 @@ const userDetailsSchema = new mongoose.Schema(
       name: { type: String, required: true },
       userId: { type: String, required: true, unique: true },
       Password: { type: String, required: true },
-      type: {type: String, enum: ["operator" , "production_head", "quality"]},
+      type: {type: String, enum: ["operator" , "production_head", "quality", "admin"]},
       createdAt: { type: String, default: getFormattedDateTime },
       updatedAt: { type: String, default: getFormattedDateTime },
     },
@@ -30,4 +30,4 @@ const userDetailsSchema = new mongoose.Schema(
 
   const UserDetailsModel = mongoose.model("factoryUser", userDetailsSchema);
 
-  module.exports = { UserDetailsModel };
+  export default UserDetailsModel 

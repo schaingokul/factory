@@ -1,0 +1,17 @@
+meta {
+  name: CreateMachine
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:3001/api/admin/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "material": "materials_1"
+  }
+}

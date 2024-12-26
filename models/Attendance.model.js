@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const moment = require("moment-timezone");
+import mongoose from "mongoose";
+import moment from "moment-timezone";
 
 // Helper to get formatted IST datetime
 const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
@@ -19,6 +19,7 @@ const userAttendanceSchema = new mongoose.Schema(
         message: "Attendance data must contain only 0, 1, or 2",
       },
     },
+    status: [{details: {type: String} , isApproved: {type: String, default: false}}],
     createdAt: { type: String, default: getFormattedDateTime },
     updatedAt: { type: String, default: getFormattedDateTime },
   },
@@ -37,6 +38,6 @@ userAttendanceSchema.pre("findOneAndUpdate", function (next) {
   next();
 });
 
-const UserAttendance = mongoose.model("UserAttendance", userAttendanceSchema);
+const UserAttendance = mongoose.model("factoryUserAttendance", userAttendanceSchema);
 
-module.exports = {UserAttendance};
+export default UserAttendance

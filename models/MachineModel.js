@@ -1,5 +1,5 @@
-const mongoose = require("mongoose") ;
-const moment = require("moment-timezone");
+import mongoose from "mongoose" ;
+import moment from "moment-timezone";
 
 // Helper to get formatted IST datetime
 const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
@@ -52,5 +52,5 @@ MachineSchema.pre("save", function (next) {
     next();
   });
 
-const machineModel = mongoose.model('Machine', MachineSchema );
-module.exports = { machineModel };
+const machineModel = mongoose.model('factoryMachineRecords', MachineSchema );
+export default  machineModel

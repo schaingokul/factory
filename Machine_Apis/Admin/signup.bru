@@ -1,11 +1,11 @@
 meta {
   name: signup
   type: http
-  seq: 10
+  seq: 1
 }
 
 post {
-  url: http://localhost:3001/api/signup
+  url: http://localhost:3001/api/admin/signup
   body: json
   auth: bearer
 }
@@ -20,9 +20,9 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Gokul",
-    "Id":"3",
+    "name": "Mukesh",
+    "Id":"10",
     "password": "12341234",
-    "type": "operator"
+    "type": "quality"
   }
 }

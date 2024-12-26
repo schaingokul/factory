@@ -1,11 +1,13 @@
-const express = require("express");
-const {machineModel} = require('../models/MachineModel.js');
-const {UserAttendance } = require("../models/Attendance.model.js");
-const {UserDetailsModel}  = require("../models/UserModelDetail.js");
-const bcrypt = require("bcrypt");
-const authenticate = require('../routes/ProtectRoute.js');
-const moment = require("moment-timezone");
-const jwt = require("jsonwebtoken")
+import express from "express";
+import machineModel from '../models/MachineModel.js';
+import UserAttendance  from "../models/Attendance.model.js";
+import UserDetailsModel from "../models/UserModelDetail.js";
+import userMachine from'../models/userMachine.js';
+
+import authenticate from '../routes/ProtectRoute.js';
+import moment from "moment-timezone";
+import jwt from "jsonwebtoken";
+import {signUp, login, getAttendance, getAllUserList, createMachine, deleteMachine, search ,addAttendance} from '../controllers/Managemant.js'
 
 const router = express.Router();
 
@@ -13,82 +15,19 @@ const router = express.Router();
 const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
 
 // Signup Route for Creating User and Attendance
-router.post('/signup', async (req, res) => {
-    const { type, name, Id, password } = req.body;
+router.post('/admin/signup', signUp);
+router.post('/login', login );
+router.get('/admin/alluser', getAllUserList);
+router.get('/admin/atten', authenticate, getAttendance);
+router.post('/attend', authenticate, addAttendance );
 
-    try {
-         // Extract and verify authorization token
-         const authHeader = req.headers.authorization;
-         if (!authHeader) {
-             return res.status(401).json({ status: false, message: "Authorization header missing" });
-         }
 
-        if (!Id || Id.trim() === '') {
-            return res.status(400).json({ status: false, message: `User ID must be provided.` });
-        }
+// Create Machine
+router.post("/admin/create", createMachine);
+router.delete("/admin/delete", deleteMachine);
+router.get("/admin/search", search);
 
-        // Check if userId already exists
-        const existingUser = await UserDetailsModel.findOne({ userId: Id });
-        if (existingUser) {
-            return res.status(400).json({ status: false, message: 'User with this userId already exists.' });
-        }
-        const hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = new UserDetailsModel({
-            name: name,
-            userId: Id,
-            Password: hashPassword,
-            type: type
-        });
-        // Save the new user and attendance record
-        await newUser.save();
-
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // JavaScript months are 0-indexed
-
-        // Initialize a new attendance record for this user
-        const newAttendance = new UserAttendance({
-            userId: Id,
-            year: currentYear,
-            month: currentMonth + 1, // Adjust month to be 1-indexed
-            data: Array(new Date(currentYear, currentMonth + 1, 0).getDate()).fill(0) // Initialize with 0 (leave or no data) for all days
-        });
-        if(!newAttendance){
-            return res.status(400).json({ status: false, message: 'Attendence is not created' });
-        }
-        console.log("newAttendance", newAttendance)
-        await newAttendance.save();
-
-        res.status(201).json({ status: true, message: `New User Created`, data: newUser });
-    } catch (error) {
-        res.status(500).json({ status: false, message: `Error creating user: ${error.message}` });
-    }
-});
-
-router.post('/login', async(req, res) => {
-    const {type , name, Id} = req.body
-    try {
-        const user = await UserDetailsModel.findOne({name: name, userId: Id, type: type});
-
-        if(!user){
-            return res.status(404).json({status: false, message: "User not found"});
-        }
-
-        const payload = {
-            userId: user.userId,
-            name: user.name,
-            type: user.type
-        };
-
-        const token = jwt.sign(payload, "secretKey"); 
-       
-        res.status(200).json({status: true, message: `Login Successfully`, data: token,});
-
-    } catch (error) {
-        res.status(500).json({status: false, message: `Login error: ${error.message}`})
-    }
-});
 
 router.get('/machine', authenticate, async (req, res) => {
     const { type, userId, name } = req.user;
@@ -99,11 +38,6 @@ router.get('/machine', authenticate, async (req, res) => {
         const user = await UserDetailsModel.findOne({ name: name, userId: userId, type: type });
         if (!user) {
             return res.status(400).json({ status: false, message: "User Not Found" });
-        }
-
-        // Validate user type
-        if (!type || (type.toLowerCase() !== "quality" && type.toLowerCase() !== "production_head")) {
-            return res.status(400).json({ status: false, message: `Only Quality or Production Head can access this` });
         }
 
         // Default to today's records if no other filter is applied
@@ -334,115 +268,6 @@ router.post('/stop/:id',authenticate,  async(req, res) => {
 });
 
 
-router.get('/atten', authenticate, async (req, res) => {
-    const { type, userId } = req.user;  // Extract type and userId from authenticated user
-    const {startOfDay, endOfDay} = req.params
-    try {
-        // Validate user existence
-        const user = await UserDetailsModel.findOne({ userId: userId });
-        if (!user) {
-            return res.status(400).json({ status: false, message: "User Not Found" });
-        }
-
-        // Define date range for today
-        const today = new Date();
-        startOfDay = startOfDay || `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
-        endOfDay = endOfDay || `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()+1}`;
-
-        // If the user is a production head, fetch all today's attendance records
-        let findUser;
-        if (type.toLowerCase() === 'production_head') {
-            findUser = await UserAttendance.find({
-                createdAt: { $gte: `${startOfDay} 00:00 AM` , $lt: `${endOfDay} 00:00 PM` },
-            }).sort({ createdAt: -1 });
-        } else{
-            // If the user is an operator or quality, fetch only their attendance
-            findUser = await UserAttendance.find({
-                userId: userId,
-                createdAt: { $gte: startOfDay, $lt: endOfDay },
-            }).sort({ createdAt: -1 });
-        }
-
-        console.log("Query for production_head:", {
-            createdAt: { $gte: startOfDay, $lt: endOfDay },
-        });
-        
-        // Check if attendance records are found
-        if (!findUser || findUser.length === 0) {
-            return res.status(500).json({ status: false, message: `Attendance records not found.` });
-        }
-
-        // Send the attendance records in the response
-        res.status(200).json({
-            status: true,
-            message: `Attendance List`,
-            view: findUser,
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `Attendance List Route Causes Error message: ${error.message}`,
-        });
-    }
-});
-
-router.post('/attend', authenticate,  async (req, res) => {
-    const { year, month, status } = req.body;
-    const {type , userId} = req.user;
-
-    try {
-        const user = await UserDetailsModel.find({userId: userId});
-        if(!user) {
-            return res.status(400).json({status: false, message: "User Not Found"});
-        }
-
-        if (!type || type.toLowerCase() !== "operator") {
-            return res.status(400).json({ status: false, message: `This is only for production_head Attedance` });
-        }
-
-        // Validate inputs
-        if (!userId || !year || !month || status === undefined) {
-            return res.status(400).json({ status: false, message: "Invalid request body. Required fields: userId, year, month, status." });
-        }
-
-        if (![0, 1, 2].includes(status)) {
-            return res.status(400).json({ status: false, message: "Invalid status. Allowed values are 0 (leave), 1 (present), 2 (absent)." });
-        }
-
-        // Get today's date and validate year/month match
-        const today = new Date();
-        const currentDay = today.getDate();
-
-        if (today.getFullYear() !== year || today.getMonth() + 1 !== month) {
-            throw new Error("The specified year and month do not match today's date.");
-        }
-
-        // Find or update attendance
-        const attendance = await UserAttendance.findOneAndUpdate(
-            { userId, year, month }, // Find by userId, year, and month
-            {
-                $set: { [`data.${currentDay - 1}`]: status }, // Update current day status
-            },
-            { new: true, upsert: true } // Create if not found
-        );
-
-        // Send response
-        res.status(200).json({
-            status: true,
-            message: `Attendance updated for ${year}-${month}-${currentDay}`,
-            data: attendance,
-        });
-
-    } catch (error) {
-        console.error("Error in /attend route:", error.message);
-        res.status(500).json({ 
-            status: false, 
-            message: `Error updating attendance: ${error.message}` 
-        });
-    }
-});
-
 router.delete('/delete/:id', async(req, res) => {
     const {type} = req.body;
     const {id} = req.params;
@@ -488,25 +313,7 @@ router.delete('/userdelete/:id', async(req, res) => {
 });
 
 
-router.get('/alluser', async(req, res) => {
-    const {type} = req.body;
 
-    try {
-        if (!type || type.toLowerCase() !== "production_head") {
-            return res.status(400).json({ status: false, message: `Only Production Head can delete the machine` });
-        }
 
-        const user = await UserDetailsModel.find();
 
-        if (!user) {
-            return res.status(404).json({ status: false, message: `user List not found` , data: user});
-        }
- 
-        res.status(200).json({ status: true, message: `Alluser Details`, data: user });
-
-    } catch (error) {
-        res.status(500).json({status: false, message: `Alluser Details Causes Error message: ${error.message}`})
-    }
-});
-
-module.exports = router
+export default router;

@@ -1,0 +1,17 @@
+meta {
+  name: DeleteMachine
+  type: http
+  seq: 9
+}
+
+delete {
+  url: http://localhost:3001/api/admin/delete
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "machine": "Machine_1"
+  }
+}
