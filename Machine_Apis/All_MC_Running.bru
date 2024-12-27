@@ -5,7 +5,19 @@ meta {
 }
 
 get {
-  url: http://localhost:3001/api/machine
+  url: http://localhost:3001/api/machine?limit&sd&ed&status&id=676ea6774b7d5df31d7c93ff
   body: json
-  auth: none
+  auth: bearer
+}
+
+params:query {
+  limit: 
+  sd: 
+  ed: 
+  status: 
+  id: 676ea6774b7d5df31d7c93ff
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJxY18xMjMiLCJuYW1lIjoiZ3Vlc3QiLCJ0eXBlIjoicXVhbGl0eSIsImlhdCI6MTczNTMwMTkyNn0.DJ32f2Oxq3yTl_-q4lL7ktPbw6c4xk3MCCeYF3MzCTU
 }

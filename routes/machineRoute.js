@@ -27,53 +27,64 @@ router.post("/admin/create", createMachine);
 router.delete("/admin/delete", deleteMachine);
 router.get("/admin/search", search);
 
-
-
+//MachineOn
 router.get('/machine', authenticate, async (req, res) => {
     const { type, userId, name } = req.user;
-    const { limit, start_D, Stop_D, fullList } = req.query;  // Using query parameters instead of params for more flexibility
+    let { limit, sd, ed, status, id  } = req.query;  // Using query parameters instead of params for more flexibility
 
     try {
+        
         // Validate user
         const user = await UserDetailsModel.findOne({ name: name, userId: userId, type: type });
         if (!user) {
             return res.status(400).json({ status: false, message: "User Not Found" });
         }
 
-        // Default to today's records if no other filter is applied
+        // Default case: Update today's attendance if no specific date is given
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // Midnight of today
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1); // Midnight of the next day
+        sd = `${sd} 00:00 AM` || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')} 00:00 AM`;
+        ed = `${ed} 11:59 PM` || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${(today.getDate() + 1).toString().padStart(2, '0')} 11:59 PM`;
 
-        // Build the query object
-        let query = { userId: userId };
+        let view;
+        let response;
+            // Fetch the data with optional limit
+            view = await machineModel.find().sort({ Start_D: -1 }).limit(limit ? parseInt(limit) : 8); // Default limit to 8 if not provided
 
-        // Apply filters based on query parameters
-        if (fullList) {
-            // If fullList is true, get all records without time filtering
-            delete query.createdAt;
-        } else {
-            // Default behavior: get today's records
-            query.createdAt = { $gte: startOfDay, $lt: endOfDay };
-        }
-
-        // Additional filters based on start_D, Stop_D, and EmgStop
-        if (start_D) {
-            query.start_D = { $gte: new Date(start_D) };  // Assuming start_D is a date string
-        }
-
-        if (Stop_D) {
-            query.Stop_D = { $lte: new Date(Stop_D) };  // Assuming Stop_D is a date string
-        }
-
-        // Fetch the data with optional limit
-        const view = await machineModel.find(query)
-            .sort({ createdAt: -1 })
-            .limit(limit ? parseInt(limit) : 8);  // Default limit to 8 if not provided
+            if(status){
+                if(limit){
+                    view = await machineModel.find({status: status}).sort({ Start_D: -1 }).limit(limit ? parseInt(limit) : 8); 
+                }else {
+                    view = await machineModel.find({status: status}).sort({ Start_D: -1 })
+                }
+            }
+            if(id){
+                response = await machineModel.findById(id);
+                 // Calculate Qlty and Wt from the QC array (convert to numbers)
+                const totalQlty = response.QC.reduce((acc, item) => acc + (parseFloat(item.Qlty) || 0), 0);
+                const totalWt = response.QC.reduce((acc, item) => acc + (parseFloat(item.Wt) || 0), 0);
+                let result = {
+                    Mc_id: response._id,
+                    McName: response.Set_Mc,
+                    UserId: response.userId,
+                    McMold: response.Set_Md,
+                    status: response.status,
+                    Qlty: totalQlty,
+                    Wt: totalWt,
+                    QC: response.QC
+                }
+                const messages = view.length > 0 ? "Machines Info" : "Machine Not Found";
+                return res.status(200).json({ status: true, message: messages, result });
+            }
+            
+            response = view.map(machine => ({
+                Mc_id: machine._id,
+                Name: machine.Set_Mc,
+                status: machine.status,  // Ensure 'status' exists in your schema
+            }));
 
         // Handle response
         const message = view.length > 0 ? "List of Machines" : "No List is found";
-        res.status(200).json({ status: true, message: message, view });
+        res.status(200).json({ status: true, message: message, response });
 
     } catch (error) {
         res.status(500).json({ status: false, message: `Error fetching machines: ${error.message}` });
@@ -91,11 +102,6 @@ router.post('/start', authenticate, async (req, res) => {
                 return res.status(400).json({ status: false, message: "User Not Found" });
             }
     
-            // Check if user is an operator
-            if (!type || type.toLowerCase() !== "operator") {
-                return res.status(400).json({ status: false, message: `Only an Operator can start the machine` });
-            }
-    
             // Validate required fields
             if (!Set_Mc || !Set_Md) {
                 return res.status(400).json({ status: false, message: "Machine (Set_Mc) and Mold (Set_Md) are required." });
@@ -107,6 +113,7 @@ router.post('/start', authenticate, async (req, res) => {
                 Set_Mc: Set_Mc,
                 Set_Md: Set_Md,
                 Start_D: getFormattedDateTime(), // Set start date and time
+                status: "active"
             });
     
             // Save the machine record
@@ -146,6 +153,7 @@ router.post('/qc/:id',authenticate,  async(req, res) => {
         }
 
        await machine.QC.push(newRecord);
+       machine.status = "running" 
        await machine.save();
         res.status(200).json({status: true, message: `Add QC Records`, newRecord });
 
@@ -232,6 +240,7 @@ router.post('/emg/:id', authenticate, async(req, res) => {
 
        machine.Emergency = stopEmergency
        machine.Stop_D = getFormattedDateTime()
+       machine.status = "shutdown"
        await machine.save();
         res.status(200).json({status: true, message: `Machine Emergency Stop`, Reason : stopEmergency });
 
@@ -258,7 +267,7 @@ router.post('/stop/:id',authenticate,  async(req, res) => {
             return res.status(400).json({ status: false, message: `Machine has already stopped`, data: machine });
         }
         machine.Stop_D = getFormattedDateTime()
-        
+        machine.status = "shutdown"
         await machine.save();
         res.status(200).json({status: true, message: `Machine Stopped`});
 
