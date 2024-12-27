@@ -39,7 +39,8 @@ const MachineSchema = mongoose.Schema({
     }, // QualityChecking
     EM: EmergencySchema, //Emergency
     Stop_D: { type: String},
-    status: {type:String, enum: ["active" , "running", "shutdown"] ,default: "active"}
+    status: {type:String, enum: ["active" , "running", "shutdown"] ,default: "active"},
+    runtime: {type:String }
 }, { timestamps: false });
 
 

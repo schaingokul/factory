@@ -14,6 +14,21 @@ const router = express.Router();
 // Helper to get formatted IST datetime
 const getFormattedDateTime = () => moment().tz("Asia/Kolkata").format("YYYY-MM-DD hh:mm A");
 
+const calculateRuntime = (startDate, stopDate = null) => {
+    const start = moment(startDate, "YYYY-MM-DD hh:mm A"); // Parse the start date
+
+    // If stop date is provided, use it, otherwise use the current time
+    const end = stopDate ? moment(stopDate, "YYYY-MM-DD hh:mm A") : moment();
+
+    const duration = moment.duration(end.diff(start)); // Get the difference between start and end time
+
+    const days = Math.floor(duration.asDays()); // Get the number of days
+    const hours = duration.hours(); // Get the remaining hours
+    const minutes = duration.minutes(); // Get the remaining minutes
+
+    return `${days} day(s) ${hours} hours ${minutes} minutes`;
+};
+
 // Signup Route for Creating User and Attendance
 router.post('/admin/signup', signUp);
 router.post('/login', login );
@@ -62,12 +77,15 @@ router.get('/machine', authenticate, async (req, res) => {
                  // Calculate Qlty and Wt from the QC array (convert to numbers)
                 const totalQlty = response.QC.reduce((acc, item) => acc + (parseFloat(item.Qlty) || 0), 0);
                 const totalWt = response.QC.reduce((acc, item) => acc + (parseFloat(item.Wt) || 0), 0);
+                runtime = calculateRuntime(machine.Start_D, machine.Stop_D);
+
                 let result = {
                     Mc_id: response._id,
                     McName: response.Set_Mc,
                     UserId: response.userId,
                     McMold: response.Set_Md,
                     status: response.status,
+                    runtime: runtime,
                     Qlty: totalQlty,
                     Wt: totalWt,
                     QC: response.QC
@@ -237,10 +255,11 @@ router.post('/emg/:id', authenticate, async(req, res) => {
             Reason: Reason,
             NumberOf_Prod: NumberOf_Prod,
         }
-
+        runtime = calculateRuntime(machine.Start_D, machine.Stop_D);
        machine.Emergency = stopEmergency
        machine.Stop_D = getFormattedDateTime()
        machine.status = "shutdown"
+       machine.runtime =  runtime,
        await machine.save();
         res.status(200).json({status: true, message: `Machine Emergency Stop`, Reason : stopEmergency });
 
@@ -266,8 +285,10 @@ router.post('/stop/:id',authenticate,  async(req, res) => {
         if (machine.Stop_D) {
             return res.status(400).json({ status: false, message: `Machine has already stopped`, data: machine });
         }
+        runtime = calculateRuntime(machine.Start_D, machine.Stop_D);
         machine.Stop_D = getFormattedDateTime()
         machine.status = "shutdown"
+        machine.runtime= runtime
         await machine.save();
         res.status(200).json({status: true, message: `Machine Stopped`});
 
