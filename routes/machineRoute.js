@@ -77,7 +77,7 @@ router.get('/machine', authenticate, async (req, res) => {
                  // Calculate Qlty and Wt from the QC array (convert to numbers)
                 const totalQlty = response.QC.reduce((acc, item) => acc + (parseFloat(item.Qlty) || 0), 0);
                 const totalWt = response.QC.reduce((acc, item) => acc + (parseFloat(item.Wt) || 0), 0);
-                runtime = calculateRuntime(machine.Start_D, machine.Stop_D);
+                let runtime = calculateRuntime(response.Start_D, response.Stop_D);
 
                 let result = {
                     Mc_id: response._id,
