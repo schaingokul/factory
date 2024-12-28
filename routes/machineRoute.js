@@ -44,65 +44,92 @@ router.get("/admin/search", search);
 
 //MachineOn
 router.get('/machine', authenticate, async (req, res) => {
+    
     const { type, userId, name } = req.user;
-    let { limit, sd, ed, status, id  } = req.query;  // Using query parameters instead of params for more flexibility
+    let { limit, sd, ed, status, id } = req.query;  // Using query parameters instead of params for more flexibility
 
     try {
-        
         // Validate user
         const user = await UserDetailsModel.findOne({ name: name, userId: userId, type: type });
         if (!user) {
             return res.status(400).json({ status: false, message: "User Not Found" });
         }
 
-        // Default case: Update today's attendance if no specific date is given
+        // Fetch the list of machines the user has access to
+        const adminMachines = await userMachine.findOne({});
+        if (!adminMachines || !adminMachines.machines || adminMachines.machines.length === 0) {
+            return res.status(404).json({ status: false, message: "No machines found" });
+        }
+
+        // Check the status of each machine
+        const machineStatuses = await Promise.all(
+            adminMachines.machines.map(async (machine) => {
+                // Check if the machine exists in the `machineModel`
+                const machineData = await machineModel.findOne({ Set_Mc: machine.name });
+                return {
+                    id: machine._id,
+                    Name: machine.name,
+                    status: machineData ? machineData.status : "Shutdown",
+                };
+            })
+        );
+
+        // Default case: Update today's running machine if no specific date is given
         const today = new Date();
-        sd = `${sd} 00:00 AM` || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')} 00:00 AM`;
-        ed = `${ed} 11:59 PM` || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${(today.getDate() + 1).toString().padStart(2, '0')} 11:59 PM`;
+        sd = sd || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')} 00:00 AM`;
+        ed = ed || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${(today.getDate() + 1).toString().padStart(2, '0')} 11:59 PM`;
 
         let view;
         let response;
-            // Fetch the data with optional limit
-            view = await machineModel.find().sort({ Start_D: -1 }).limit(limit ? parseInt(limit) : 8); // Default limit to 8 if not provided
 
-            if(status){
-                if(limit){
-                    view = await machineModel.find({status: status}).sort({ Start_D: -1 }).limit(limit ? parseInt(limit) : 8); 
-                }else {
-                    view = await machineModel.find({status: status}).sort({ Start_D: -1 })
-                }
+        // Fetch the data with optional limit and date filtering
+        if (id) {
+            // Show particular machine full details
+            response = await machineModel.findById(id);
+            if (!response) {
+                return res.status(404).json({ status: false, message: "Machine Not Found" });
             }
-            if(id){
-                response = await machineModel.findById(id);
-                 // Calculate Qlty and Wt from the QC array (convert to numbers)
-                const totalQlty = response.QC.reduce((acc, item) => acc + (parseFloat(item.Qlty) || 0), 0);
-                const totalWt = response.QC.reduce((acc, item) => acc + (parseFloat(item.Wt) || 0), 0);
-                let runtime = calculateRuntime(response.Start_D, response.Stop_D);
 
-                let result = {
-                    Mc_id: response._id,
-                    McName: response.Set_Mc,
-                    UserId: response.userId,
-                    McMold: response.Set_Md,
-                    status: response.status,
-                    runtime: runtime,
-                    Qlty: totalQlty,
-                    Wt: totalWt,
-                    QC: response.QC
-                }
-                const messages = view.length > 0 ? "Machines Info" : "Machine Not Found";
-                return res.status(200).json({ status: true, message: messages, result });
+            const totalQlty = response.QC.reduce((acc, item) => acc + (parseFloat(item.Qlty) || 0), 0);
+            const totalWt = response.QC.reduce((acc, item) => acc + (parseFloat(item.Wt) || 0), 0);
+            const runtime = calculateRuntime(response.Start_D, response.Stop_D);
+
+            const result = {
+                Mc_id: response._id,
+                McName: response.Set_Mc,
+                UserId: response.userId,
+                McMold: response.Set_Md,
+                status: response.status,
+                runtime: runtime,
+                Qlty: totalQlty,
+                Wt: totalWt,
+                QC: response.QC
+            };
+
+            const messages = response ? "Machines Info" : "Machine Not Found";
+            return res.status(200).json({ status: true, message: messages, result });
+        } else {
+            // Fetch all machines for the specified date range with limit
+            view = await machineModel.find({ Start_D: { $gte: sd, $lt: ed } })
+                .sort({ Start_D: -1 })
+                .limit(limit ? parseInt(limit) : 8);
+
+            // Filter machines by status if provided
+            if (status) {
+                view = await machineModel.find({ status: status }).sort({ Start_D: -1 }).limit(limit ? parseInt(limit) : 8);
             }
-            
-            response = view.map(machine => ({
-                Mc_id: machine._id,
-                Name: machine.Set_Mc,
-                status: machine.status,  // Ensure 'status' exists in your schema
-            }));
 
-        // Handle response
-        const message = view.length > 0 ? "List of Machines" : "No List is found";
-        res.status(200).json({ status: true, message: message, response });
+            // Prepare the response for the machines list
+            // const machinesResponse = view.map(machine => ({
+            //     Mc_id: machine._id,
+            //     Name: machine.Set_Mc,
+            //     status: machine.status, // Ensure 'status' exists in your schema
+            // }));
+
+            // Handle response
+            const message = view.length > 0 ? "List of Machines" : "No List is found";
+            res.status(200).json({ status: true, message: message, machineStatuses });
+        }
 
     } catch (error) {
         res.status(500).json({ status: false, message: `Error fetching machines: ${error.message}` });
@@ -110,7 +137,7 @@ router.get('/machine', authenticate, async (req, res) => {
 });
 
 router.post('/start', authenticate, async (req, res) => {
-        const { Set_Mc, Set_Md } = req.body;
+        const { Set_Mc, Set_Md, Set_Mat } = req.body;
         const { type, userId } = req.user;
     
         try {
@@ -124,14 +151,22 @@ router.post('/start', authenticate, async (req, res) => {
             if (!Set_Mc || !Set_Md) {
                 return res.status(400).json({ status: false, message: "Machine (Set_Mc) and Mold (Set_Md) are required." });
             }
+
+            if(Set_Mc){
+                let status= await machineModel.findOne({Set_Mc: Set_Mc})
+                if(status.Stop_D = null){
+                    return res.status(400).json({status: false, message: "Machine is Already Running"})
+                }
+            }
     
             // Create new machine record
             const newMac = new machineModel({
                 userId: userId,
                 Set_Mc: Set_Mc,
                 Set_Md: Set_Md,
+                Set_Mat: Set_Mat,
                 Start_D: getFormattedDateTime(), // Set start date and time
-                status: "active"
+                status: "running"
             });
     
             // Save the machine record
@@ -144,7 +179,7 @@ router.post('/start', authenticate, async (req, res) => {
         }
     });
     
-router.post('/qc/:id',authenticate,  async(req, res) => {
+router.post('/qc/:id', authenticate,  async(req, res) => {
     const {qlty, Wt } = req.body;
     const { type, userId: qcid } = req.user
     const {id} = req.params;
@@ -171,7 +206,6 @@ router.post('/qc/:id',authenticate,  async(req, res) => {
         }
 
        await machine.QC.push(newRecord);
-       machine.status = "running" 
        await machine.save();
         res.status(200).json({status: true, message: `Add QC Records`, newRecord });
 
@@ -341,9 +375,5 @@ router.delete('/userdelete/:id', async(req, res) => {
         res.status(500).json({status: false, message: `user Delete Causes Error message: ${error.message}`})
     }
 });
-
-
-
-
 
 export default router;

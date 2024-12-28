@@ -1,0 +1,23 @@
+meta {
+  name: All_MC
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:3001/api/machine
+  body: json
+  auth: bearer
+}
+
+params:query {
+  ~limit: 
+  ~sd: 
+  ~ed: 2024-12-24
+  ~status: 
+  ~id: 676fb6e41ef83fd29cc4e04d
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJvcF8xMjMiLCJuYW1lIjoiZ3Vlc3QiLCJ0eXBlIjoib3BlcmF0b3IiLCJpYXQiOjE3MzUzNzQyNTF9.4sfIS1S-X_nZ_O9HMJSfu73Vakx-zQOYJn5W1kfCR90
+}

@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: http://localhost:3001/api/admin/atten?sd=2024-12-24
+  url: http://localhost:3001/api/admin/atten
   body: json
   auth: bearer
 }
 
 params:query {
-  sd: 2024-12-24
   : 
+  ~sd: 2024-12-25
 }
 
 auth:bearer {

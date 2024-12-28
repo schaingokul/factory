@@ -3,6 +3,7 @@ import UserAttendance from "../models/Attendance.model.js";
 import bcrypt from "bcrypt";
 import userMachine from "../models/userMachine.js";
 import jwt from "jsonwebtoken"
+import machineModel from "../models/MachineModel.js";
 
 export const signUp = async (req, res) => {
     const { type, name, Id, password } = req.body;
@@ -59,12 +60,16 @@ export const signUp = async (req, res) => {
 };
 
 export const login = async(req, res) => {
-    const {type , name, Id} = req.body
+    const {type , name, Id, password} = req.body
     try {
         const user = await UserDetailsModel.findOne({name: name, userId: Id, type: type});
 
         if(!user){
             return res.status(404).json({status: false, message: "User not found"});
+        }
+        const isValidPassword = bcrypt.compare(password, user.Password);
+        if(!isValidPassword){
+            return res.status(400).json({status: false, message: `InValid Password`})
         }
 
         const payload = {
@@ -73,7 +78,7 @@ export const login = async(req, res) => {
             type: user.type
         };
 
-        const token = jwt.sign(payload, "secretKey"); 
+        const token = jwt.sign(payload, "secretKey");
        
         res.status(200).json({status: true, message: `Login Successfully`, data: token,});
 
@@ -144,6 +149,100 @@ export const getAttendance = async (req, res) => {
         });
     }
 };
+
+export const addAttendance =async (req, res) => {
+    const {status , id,  month, year, date } = req.query;
+    const { type, userId } = req.user;
+    try {
+        // Find the user
+        const user = await UserDetailsModel.findOne({ userId });
+        if (!user) {
+            return res.status(400).json({ status: false, message: "User Not Found" });
+        }
+        const attendanceStatus = parseInt(status, 10);
+        // Validate the status input
+        if (![0, 1, 2].includes(status)) {
+            return res.status(400).json({ status: false, message: "Invalid status. Allowed values are 0 (leave), 1 (present), 2 (absent)." });
+        }
+
+        // Handle leave request (status === 2)
+        let leave = null;
+        if (status === 2) {
+            leave = {
+                details: `Leave request from ${user.name} on ${year}-${month}-${date}`,
+                isApproved: false
+            };
+        }
+
+        // If a specific month/year/date is provided, update that attendance record
+        if (month && year && date && id) {
+            const attendance = await UserAttendance.findOneAndUpdate(
+                { userId: id, year, month },
+                {
+                    $set: { [`data.${date - 1}`]: status }, // Update the specific day's status
+                    $push: { status: leave ? leave : {} }, // Push leave request if it's a leave
+                },
+                { new: true, upsert: true }
+            );
+
+            if (attendance) {
+                return res.status(200).json({
+                    status: true,
+                    message: `Attendance updated for ${year}-${month}-${date}`,
+                    data: attendance,
+                });
+            }
+        }
+
+        // Default case: Update today's attendance if no specific date is given
+        const today = new Date();
+        const currentDay = today.getDate();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // JavaScript months are 0-indexed
+
+        // Find or update attendance for the current month and year
+        const attendance = await UserAttendance.findOneAndUpdate(
+            { userId, year: currentYear, month: currentMonth },
+            {
+                $set: { [`data.${currentDay - 1}`]: status }, // Update the current day's status
+                $push: { status: leave ? leave : {} }, // Push leave request if it's a leave
+            },
+            { new: true, upsert: true }
+        );
+
+        if (!attendance) {
+            // Initialize a new attendance record for this user if not found
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Get number of days in the current month
+            const newAttendance = new UserAttendance({
+                userId,
+                year: currentYear,
+                month: currentMonth, // Month remains 0-indexed
+                data: Array(daysInMonth).fill(0), // Initialize all days as '0' (leave or no data)
+                status: leave ? [leave] : [], // If it's a leave, add it to the status
+            });
+
+            // Save the new attendance record
+            await newAttendance.save();
+
+            return res.status(200).json({
+                status: true,
+                message: `Attendance record created for ${currentYear}-${currentMonth + 1}-${currentDay}`,
+                data: newAttendance,
+            });
+        }
+
+        // Send response after updating the attendance
+        res.status(200).json({
+            status: true,
+            message: `Attendance updated for ${currentYear}-${currentMonth + 1}-${currentDay}`,
+            data: attendance,
+        });
+
+    } catch (error) {
+        console.error("Error in /attend route:", error.message);
+        res.status(500).json({ status: false, message: `Error updating attendance: ${error.message}` });
+    }
+}
 
 // All users
 export const getAllUserList = async (req, res) => {
@@ -475,98 +574,3 @@ export const search = async (req, res) => {
         return res.status(500).json({ status: false, message: `Error processing request: ${error.message}` });
     }
   }
-
-  export const addAttendance =async (req, res) => {
-    const { status, month, year, date } = req.body;
-    const { type, userId } = req.user;
-
-    try {
-        // Find the user
-        const user = await UserDetailsModel.findOne({ userId });
-        if (!user) {
-            return res.status(400).json({ status: false, message: "User Not Found" });
-        }
-
-        // Validate the status input
-        if (![0, 1, 2].includes(status)) {
-            return res.status(400).json({ status: false, message: "Invalid status. Allowed values are 0 (leave), 1 (present), 2 (absent)." });
-        }
-
-        // Handle leave request (status === 2)
-        let leave = null;
-        if (status === 2) {
-            leave = {
-                details: `Leave request from ${user.name} on ${year}-${month}-${date}`,
-                isApproved: false
-            };
-        }
-
-        // If a specific month/year/date is provided, update that attendance record
-        if (month && year && date) {
-            const attendance = await UserAttendance.findOneAndUpdate(
-                { userId, year, month },
-                {
-                    $set: { [`data.${date - 1}`]: status }, // Update the specific day's status
-                    $push: { status: leave ? leave : {} }, // Push leave request if it's a leave
-                },
-                { new: true, upsert: true }
-            );
-
-            if (attendance) {
-                return res.status(200).json({
-                    status: true,
-                    message: `Attendance updated for ${year}-${month}-${date}`,
-                    data: attendance,
-                });
-            }
-        }
-
-        // Default case: Update today's attendance if no specific date is given
-        const today = new Date();
-        const currentDay = today.getDate();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // JavaScript months are 0-indexed
-
-        // Find or update attendance for the current month and year
-        const attendance = await UserAttendance.findOneAndUpdate(
-            { userId, year: currentYear, month: currentMonth },
-            {
-                $set: { [`data.${currentDay - 1}`]: status }, // Update the current day's status
-                $push: { status: leave ? leave : {} }, // Push leave request if it's a leave
-            },
-            { new: true, upsert: true }
-        );
-
-        if (!attendance) {
-            // Initialize a new attendance record for this user if not found
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Get number of days in the current month
-            const newAttendance = new UserAttendance({
-                userId,
-                year: currentYear,
-                month: currentMonth, // Month remains 0-indexed
-                data: Array(daysInMonth).fill(0), // Initialize all days as '0' (leave or no data)
-                status: leave ? [leave] : [], // If it's a leave, add it to the status
-            });
-
-            // Save the new attendance record
-            await newAttendance.save();
-
-            return res.status(200).json({
-                status: true,
-                message: `Attendance record created for ${currentYear}-${currentMonth + 1}-${currentDay}`,
-                data: newAttendance,
-            });
-        }
-
-        // Send response after updating the attendance
-        res.status(200).json({
-            status: true,
-            message: `Attendance updated for ${currentYear}-${currentMonth + 1}-${currentDay}`,
-            data: attendance,
-        });
-
-    } catch (error) {
-        console.error("Error in /attend route:", error.message);
-        res.status(500).json({ status: false, message: `Error updating attendance: ${error.message}` });
-    }
-}

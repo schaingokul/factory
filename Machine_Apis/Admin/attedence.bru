@@ -5,17 +5,19 @@ meta {
 }
 
 post {
-  url: http://localhost:3001/api/attend
+  url: http://localhost:3001/api/attend?status&id&month&year&date
   body: json
   auth: bearer
 }
 
-auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzIiwibmFtZSI6Ikdva3VsIiwidHlwZSI6Im9wZXJhdG9yIiwiaWF0IjoxNzM1MTAzNTMyfQ.7lr1VnwcFA_oxA0nOrGL7asy521kJD6n0e1uQTN4rTs
+params:query {
+  status: 
+  id: 
+  month: 
+  year: 
+  date: 
 }
 
-body:json {
-  {
-    "status": 1
-  }
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJvcF8xMjMiLCJuYW1lIjoiZ3Vlc3QiLCJ0eXBlIjoib3BlcmF0b3IiLCJpYXQiOjE3MzUzNjcxOTV9.tqYYzdRGfrMXQ3zlhLjuQklQGLVDw_UnvPwjoYwj4ok
 }

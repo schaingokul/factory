@@ -28,6 +28,7 @@ const MachineSchema = mongoose.Schema({
     userId: {type: String, required: true},
     Set_Mc: {type: String, required: true}, // Machine
     Set_Md: {type: String, required: true}, // Mold 
+    Set_Mat: {type: String, required: true}, // Material
     Start_D: { type: String},
     QC: {type: [RecordSchema],
         validate: {
@@ -39,7 +40,7 @@ const MachineSchema = mongoose.Schema({
     }, // QualityChecking
     EM: EmergencySchema, //Emergency
     Stop_D: { type: String},
-    status: {type:String, enum: ["active" , "running", "shutdown"] ,default: "active"},
+    status: {type:String, enum: ["running", "shutdown"] , default: "running"},
     runtime: {type:String }
 }, { timestamps: false });
 
